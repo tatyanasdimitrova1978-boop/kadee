@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Къде ми е?</title>
+<meta name="theme-color" content="#14120f">
+<meta name="color-scheme" content="dark">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#14120f; --panel:#1d1a16; --panel2:#272219; --line:#3a332a;
+  --text:#f1e9dc; --muted:#a89c8a; --faint:#6f6658;
+  --amber:#f0a73a; --amber-ink:#2a1a03; --teal:#3fb8a9; --red:#ec5f55; --violet:#a98be8;
+  --r:14px;
+  --font:'Golos Text',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --head:'Oswald','Golos Text',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 var(--font)}
+body{min-height:100vh;padding-bottom:110px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+svg{width:1em;height:1em;flex:none}
+.hidden{display:none!important}
+
+/* шапка */
+header{position:sticky;top:0;z-index:20;background:rgba(20,18,15,.94);backdrop-filter:blur(10px);
+  padding:calc(10px + env(safe-area-inset-top)) 16px 10px;border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:10px}
+.logo{font:600 22px/1 var(--head);letter-spacing:.02em;text-transform:uppercase;margin:0;flex:1;white-space:nowrap}
+.logo span{color:var(--amber)}
+.pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border-radius:99px;
+  background:var(--panel2);color:var(--muted);white-space:nowrap}
+.pill .dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.pill.ok .dot{background:var(--teal)} .pill.pending .dot,.pill.syncing .dot{background:var(--amber)}
+.pill.syncing .dot{animation:blink 1s infinite} .pill.error .dot,.pill.offline .dot{background:var(--red)}
+@keyframes blink{50%{opacity:.25}}
+.iconbtn{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--panel2);font-size:20px;color:var(--muted)}
+.search{margin-top:10px;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--r);padding:0 6px 0 12px}
+.search input{flex:1;background:none;border:0;outline:0;padding:12px 0;min-width:0}
+.search>svg{color:var(--faint);font-size:18px}
+.chips{display:flex;gap:6px;overflow-x:auto;margin:10px -16px 0;padding:0 16px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:7px 12px;border-radius:99px;background:var(--panel);border:1px solid var(--line);font-size:14px;color:var(--muted)}
+.chip.on{background:var(--amber);border-color:var(--amber);color:var(--amber-ink);font-weight:600}
+.chip.place{background:var(--panel2);color:var(--text);border-color:var(--teal)}
+
+main{padding:12px 16px;max-width:720px;margin:0 auto}
+.alert{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:rgba(236,95,85,.12);
+  border:1px solid rgba(236,95,85,.4);color:var(--text);border-radius:var(--r);padding:12px 14px;margin-bottom:12px}
+.alert b{color:var(--red)}
+.tools{display:flex;justify-content:space-between;align-items:center;margin:2px 0 10px;color:var(--muted);font-size:14px}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{padding:6px 12px;border-radius:7px;color:var(--muted);font-size:14px}
+.seg button.on{background:var(--panel2);color:var(--text)}
+select.sort{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-size:14px;color:var(--muted)}
+
+/* карти */
+.card{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  padding:12px 14px;margin-bottom:8px}
+.card:active{background:var(--panel2)}
+.ctop{display:flex;align-items:center;gap:8px}
+.cname{font-weight:600;font-size:17px;flex:1;min-width:0;overflow-wrap:anywhere}
+.cdot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--faint)}
+.c-храна{background:var(--teal)} .c-лекарство{background:var(--violet)}
+.where{margin-top:6px;color:var(--muted);font-size:14px;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+.code{font:600 13px/1 var(--mono);background:var(--panel2);border:1px solid var(--teal);color:var(--teal);
+  padding:4px 7px;border-radius:7px;letter-spacing:.04em}
+.cnote{margin-top:4px;color:var(--faint);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.exp{font-size:12px;font-weight:600;padding:4px 8px;border-radius:99px;white-space:nowrap;background:var(--panel2);color:var(--muted)}
+.exp.red{background:rgba(236,95,85,.18);color:var(--red)} .exp.amber{background:rgba(240,167,58,.18);color:var(--amber)}
+.exp.teal{color:var(--teal)}
+.empty{text-align:center;color:var(--muted);padding:48px 16px}
+.empty big{display:block;font:600 22px var(--head);color:var(--text);margin-bottom:8px;text-transform:uppercase}
+h2.sec{font:600 15px var(--head);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:18px 0 8px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.pcard{text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.pcard .code{font-size:16px;padding:6px 9px}
+.pcard p{margin:8px 0 4px;font-size:14px;color:var(--text)}
+.pcard small{color:var(--muted)}
+.lrow{display:flex;justify-content:space-between;width:100%;padding:12px 14px;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;margin-bottom:6px;text-align:left}
+.lrow small{color:var(--muted)}
+
+/* долна лента */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;gap:10px;justify-content:center;
+  padding:12px 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 35%)}
+.say{display:flex;align-items:center;justify-content:center;gap:10px;flex:1;max-width:420px;height:58px;border-radius:18px;
+  background:var(--amber);color:var(--amber-ink);font:600 20px var(--head);text-transform:uppercase;letter-spacing:.04em;
+  box-shadow:0 8px 24px rgba(240,167,58,.25)}
+.say svg{font-size:24px}
+.add{width:58px;height:58px;border-radius:18px;background:var(--panel2);border:1px solid var(--line);font-size:28px;display:grid;place-items:center}
+
+/* листове (модални прозорци) */
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;max-height:92vh;overflow:auto;background:var(--panel);
+  border-radius:20px 20px 0 0;border-top:1px solid var(--line);padding:8px 16px calc(20px + env(safe-area-inset-bottom));
+  max-width:720px;margin:0 auto;animation:up .2s ease-out}
+@keyframes up{from{transform:translateY(30px);opacity:0}}
+.x{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:10px;background:var(--panel2);color:var(--muted);font-size:16px}
+.grab{width:40px;height:4px;border-radius:4px;background:var(--line);margin:4px auto 12px}
+.sheet h3{font:600 22px var(--head);text-transform:uppercase;margin:0 0 12px}
+.heard{background:var(--panel2);border-left:3px solid var(--amber);padding:8px 12px;border-radius:8px;color:var(--muted);font-size:14px;margin-bottom:12px}
+label.f{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px;font-weight:500}
+.inrow{display:flex;gap:6px;align-items:stretch}
+.inp{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;outline:0;min-width:0}
+.inp:focus{border-color:var(--amber)}
+textarea.inp{min-height:64px;resize:vertical}
+.inp.mono{font:600 18px var(--mono);text-transform:uppercase;letter-spacing:.06em;width:110px;flex:none}
+.mic{flex:none;width:48px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);display:grid;place-items:center;font-size:20px;color:var(--amber)}
+.mini{flex:none;padding:0 12px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);font-size:14px;color:var(--muted)}
+.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.cats button{padding:11px 4px;border-radius:12px;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
+.cats button.on{border-color:var(--amber);color:var(--text);background:var(--panel2)}
+.quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.quick button{padding:6px 10px;border-radius:99px;background:var(--panel2);font-size:13px;color:var(--muted)}
+.hint{font-size:13px;color:var(--teal);margin-top:6px}
+.newplace{margin-top:8px;padding:10px;border:1px dashed var(--teal);border-radius:12px}
+.newplace p{margin:0 0 6px;font-size:13px;color:var(--teal)}
+.or{font-size:12px;color:var(--faint);text-align:center;margin:8px 0 0}
+.actions{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}
+.btn{flex:1;min-width:120px;padding:14px;border-radius:14px;background:var(--panel2);border:1px solid var(--line);font-weight:600}
+.btn.primary{background:var(--amber);color:var(--amber-ink);border-color:var(--amber)}
+.btn.danger{color:var(--red);flex:none;min-width:0}
+.btn.small{padding:10px;font-size:14px;font-weight:500}
+.set p{color:var(--muted);font-size:14px;margin:6px 0}
+.set ol{color:var(--muted);font-size:14px;padding-left:20px;margin:6px 0}
+.set hr{border:0;border-top:1px solid var(--line);margin:18px 0}
+.status{font-size:14px;margin-top:8px;color:var(--muted)}
+.status.good{color:var(--teal)} .status.bad{color:var(--red)}
+.inlist{margin:10px 0 0;padding:0;list-style:none;font-size:14px;color:var(--muted)}
+.inlist li{padding:6px 0;border-bottom:1px solid var(--line)}
+
+/* слушане */
+.listen{position:fixed;inset:0;z-index:60;background:rgba(14,12,10,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+.orb{width:120px;height:120px;border-radius:50%;background:var(--amber);color:var(--amber-ink);display:grid;place-items:center;font-size:52px;
+  box-shadow:0 0 0 0 rgba(240,167,58,.5);animation:pulse 1.4s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 28px rgba(240,167,58,0)}100%{box-shadow:0 0 0 0 rgba(240,167,58,0)}}
+.ltitle{font:600 22px var(--head);text-transform:uppercase;margin:28px 0 8px}
+.ltext{min-height:60px;font-size:22px;max-width:560px}
+.lex{color:var(--faint);font-size:14px;margin-top:10px;max-width:420px}
+.lbtns{display:flex;gap:10px;margin-top:28px}
+
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:70;background:var(--text);color:var(--bg);
+  padding:12px 16px;border-radius:12px;font-weight:500;display:flex;gap:14px;align-items:center;max-width:calc(100% - 32px);box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.toast button{color:#9a5a00;font-weight:700}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <h1 class="logo">Къде ми е<span>?</span></h1>
+    <button class="pill" id="pill"><span class="dot"></span><span id="pilltxt">На телефона</span></button>
+    <button class="iconbtn" id="btnSettings" aria-label="Настройки"></button>
+  </div>
+  <div class="search">
+    <span id="icoSearch"></span>
+    <input id="q" type="search" placeholder="Търси: име, място, код…" autocomplete="off">
+    <button class="mic" data-mic="search" aria-label="Търси с глас" style="width:40px;height:40px;border:0;background:none"></button>
+  </div>
+  <div class="chips" id="chips"></div>
+</header>
+
+<main>
+  <button class="alert hidden" id="alert"></button>
+  <div class="tools">
+    <div class="seg" id="viewSeg">
+      <button data-view="list" class="on">Предмети</button>
+      <button data-view="places">Места</button>
+    </div>
+    <select class="sort" id="sort" aria-label="Подреждане">
+      <option value="name">По име</option>
+      <option value="expiry">По срок</option>
+      <option value="new">Най-нови</option>
+    </select>
+  </div>
+  <div id="out"></div>
+</main>
+
+<div class="dock">
+  <button class="say" id="btnSay"><span id="icoSay"></span>Кажи</button>
+  <button class="add" id="btnAdd" aria-label="Добави ръчно">+</button>
+</div>
+
+<div id="layer"></div>
+
+<script>
+/* ═════════════ Разпознаване на изречения ═════════════ */
+/*PARSER-START*/
+const BG = (() => {
+  const L = 'а-яёѝa-z';
+  const NB = `(?<![${L}\\d])`, NA = `(?![${L}])`;
+  const MONTHS = ['януари','февруари','март','април','май','юни','юли','август','септември','октомври','ноември','декември'];
+  const MRE = MONTHS.join('|');
+  const ORD1 = {първи:1,втори:2,трети:3,четвърти:4,пети:5,шести:6,седми:7,осми:8,девети:9};
+  const ORDT = {десети:10,единадесети:11,единайсети:11,дванадесети:12,дванайсети:12,тринадесети:13,тринайсети:13,
+    четиринадесети:14,четиринайсети:14,петнадесети:15,петнайсети:15,шестнадесети:16,шестнайсети:16,
+    седемнадесети:17,седемнайсети:17,осемнадесети:18,осемнайсети:18,деветнадесети:19,деветнайсети:19,
+    двадесети:20,двайсети:20,тридесети:30,трийсети:30};
+  const NUMW = {един:1,една:1,едно:1,два:2,две:2,три:3,четири:4,пет:5,шест:6,седем:7,осем:8,девет:9,десет:10,
+    единадесет:11,единайсет:11,дванадесет:12,дванайсет:12,петнадесет:15,петнайсет:15,двадесет:20,двайсет:20};
+  const LETTERS = {а:'А',бе:'Б',бъ:'Б',ве:'В',въ:'В',ге:'Г',гъ:'Г',де:'Д',дъ:'Д',е:'Е',же:'Ж',жъ:'Ж',зе:'З',зъ:'З',
+    и:'И',ка:'К',къ:'К',ке:'К',ел:'Л',лъ:'Л',ем:'М',мъ:'М',ен:'Н',нъ:'Н',о:'О',пе:'П',пъ:'П',ер:'Р',ръ:'Р',
+    ес:'С',съ:'С',те:'Т',тъ:'Т',у:'У',еф:'Ф',фъ:'Ф',хе:'Х',хъ:'Х',це:'Ц',цъ:'Ц',че:'Ч',чъ:'Ч',ша:'Ш',шъ:'Ш',
+    ща:'Щ',щъ:'Щ',ю:'Ю',я:'Я'};
+  const CODE_WORDS = 'кутия|кутията|кутийка|кутийката|код|кода|място|мястото|кашон|кашона|кашонът|номер|чекмедже|чекмеджето|торба|торбата|сандък|сандъка|контейнер|контейнера|кош|коша';
+  const LOC_NOUNS = 'кухня|кухнята|хладилник[а-я]*|фризер[а-я]*|баня|банята|хол|хола|холa|спалн[а-я]*|килер[а-я]*|мазе|мазето|гараж[а-я]*|тераса[а-я]*|балкон[а-я]*|таван[а-я]*|шкаф[а-я]*|рафт[а-я]*|чекмедж[а-я]*|аптечк[а-я]*|гардероб[а-я]*|скрин[а-я]*|бюфет[а-я]*|вратичк[а-я]*|кашон[а-я]*|кутия|кутията|стелаж[а-я]*|коридор[а-я]*|антре[а-я]*|кабинет[а-я]*|кола|колата|багажник[а-я]*|полиц[а-я]*|етажерк[а-я]*|нощн[а-я]*|мивк[а-я]*|печк[а-я]*|фурн[а-я]*|бюро|бюрото|маса|масата|легло|леглото|диван[а-я]*|плот[а-я]*|горн[а-я]*|долн[а-я]*|средн[а-я]*|пералн[а-я]*|сушилн[а-я]*|тоалетн[а-я]*|детск[а-я]*|вила|вилата|двор[а-я]*|сейф[а-я]*|куфар[а-я]*';
+  const MED = /(?<![а-яa-z])(лекарств|хапч|таблет|сироп|капки|мехлем|унгвент|ампул|аптечк|витамин|антибиот|аспирин|парацетамол|ибупрофен|нурофен|аналгин|спрей за (нос|гърло)|бинт|лейкопласт|термометър|сашет|капсул)/i;
+  const FOOD = /(?<![а-яa-z])(мляко|млека|сирене|кашкавал|месо|кайма|пиле|хляб|консерв|брашно|захар|ориз|олио|зехтин|кафе|чай|сок|бира|вино|ракия|яйц|масло|кисел|колбас|салам|шунка|риба|плод|зеленчук|подправ|шоколад|бисквит|паста|макарон|спагети|боб|леща|мед|конфитюр|лютеница|кетчуп|майонеза|горчица|сос|сол|оцет|ядки|кроасан|вафл|бонбон|чипс|сладолед|йогурт|извара|кренвирш|наденица|кашкавал|храна|супа|фризер|хладилник)/i;
+
+  const pad = n => String(n).padStart(2, '0');
+  const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const startToday = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const lastDay = (y, m) => new Date(y, m, 0).getDate(); // m = 1..12
+
+  function normOrdinals(t) {
+    const o1 = Object.keys(ORD1).join('|');
+    const all = Object.keys(ORDT).concat(Object.keys(ORD1)).join('|');
+    t = t.replace(new RegExp(`${NB}(двадесет|двайсет|тридесет|трийсет)\\s+и\\s+(${o1})(?=\\s+(?:${MRE})${NA})`, 'gi'),
+      (m, a, b) => String((/^два/i.test(a) ? 20 : 30) + ORD1[b.toLowerCase()]));
+    t = t.replace(new RegExp(`${NB}(${all})(?=\\s+(?:${MRE})${NA})`, 'gi'),
+      (m, a) => String(ORD1[a.toLowerCase()] || ORDT[a.toLowerCase()]));
+    return t;
+  }
+
+  function mkDate(y, m, d, today, yearGiven) {
+    if (m < 1 || m > 12) return null;
+    if (y < 100) y += 2000;
+    if (d < 1 || d > lastDay(y, m)) return null;
+    let dt = new Date(y, m - 1, d);
+    if (!yearGiven && dt < today) dt = new Date(y + 1, m - 1, Math.min(d, lastDay(y + 1, m)));
+    return dt;
+  }
+
+  /** Търси дата в текста. Връща {date, index, length} или null. */
+  function findDate(t, today) {
+    const trig = `(?:(?:годн[аоие]?|годен|срок(?:\\s+на\\s+годност)?|изтича|изтичат|важи|валидн[аоие]?|валиден|експирира)\\s+)?(?:(?:до|на|през|в|във)\\s+)?`;
+    const yr = `(?:\\s+(\\d{4}|\\d{2}(?=\\s*г)))?(?:\\s*(?:г\\.|г|година|год\\.?)${NA})?`;
+    const unit = 'дни|ден|деня|седмици|седмица|месеца|месец|месеци|година|години';
+    const nums = Object.keys(NUMW).join('|');
+    const tries = [
+      { re: `(\\d{1,2})[.\\/-](\\d{1,2})[.\\/-](\\d{2,4})(?!\\d)`, f: m => mkDate(+m[3], +m[2], +m[1], today, true) },
+      { re: `(\\d{1,2})[.\\/](\\d{4})(?!\\d)`, f: m => { const mo = +m[1], y = +m[2];
+          return mo >= 1 && mo <= 12 ? new Date(y, mo - 1, lastDay(y, mo)) : null; } },
+      { re: `(\\d{1,2})(?:-?(?:ви|ри|ти|ми|и))?\\s+(${MRE})${NA}${yr}`,
+        f: m => mkDate(m[3] ? +m[3] : today.getFullYear(), MONTHS.indexOf(m[2].toLowerCase()) + 1, +m[1], today, !!m[3]) },
+      { re: `(${MRE})${NA}${yr}`, f: m => {
+          const mo = MONTHS.indexOf(m[1].toLowerCase()) + 1;
+          let y = m[2] ? +m[2] : today.getFullYear();
+          if (y < 100) y += 2000;
+          if (!m[2] && mo < today.getMonth() + 1) y++;
+          return new Date(y, mo - 1, lastDay(y, mo));
+        } },
+      { re: `след\\s+(?:(\\d+|${nums}|половин)\\s+)?(${unit})${NA}`, f: m => {
+          const w = (m[1] || '1').toLowerCase();
+          let n = /^\d+$/.test(w) ? +w : (w === 'половин' ? 0.5 : NUMW[w]);
+          const d = new Date(today), u = m[2].toLowerCase();
+          if (/^д/.test(u)) d.setDate(d.getDate() + n);
+          else if (/^седм/.test(u)) d.setDate(d.getDate() + 7 * n);
+          else if (/^мес/.test(u)) { if (n === 0.5) d.setDate(d.getDate() + 15); else d.setMonth(d.getMonth() + n); }
+          else { if (n === 0.5) d.setMonth(d.getMonth() + 6); else d.setFullYear(d.getFullYear() + n); }
+          return d;
+        } },
+      { re: `(?<=(?:годн[аоие]?|годен|изтича|важи|валиден)\\s+(?:до|на)\\s+)(\\d{1,2})\\.(\\d{1,2})(?![\\d.])`,
+        f: m => mkDate(today.getFullYear(), +m[2], +m[1], today, false), bare: true }
+    ];
+    for (const x of tries) {
+      const re = new RegExp(x.bare ? x.re : NB + trig + x.re, 'i');
+      const m = re.exec(t);
+      if (m) {
+        const d = x.f(m);
+        if (d) {
+          let index = m.index, length = m[0].length;
+          if (x.bare) { // махаме и думите преди датата
+            const pre = /(?:годн[аоие]?|годен|изтича|важи|валиден)\s+(?:до|на)\s+$/i.exec(t.slice(0, index));
+            if (pre) { length += index - pre.index; index = pre.index; }
+          }
+          return { date: iso(d), index, length };
+        }
+      }
+    }
+    return null;
+  }
+
+  /** Превръща изречен код („бе 3“, „12“, „Б-3“) в код. Връща {code, used} или null. */
+  function codeTokens(rest) {
+    const toks = rest.trim().split(/\s+/).filter(Boolean);
+    let i = 0;
+    if (toks[i] && /^(номер|код|№)$/i.test(toks[i])) i++;
+    const letter = s => {
+      s = s.toLowerCase();
+      if (LETTERS[s]) return LETTERS[s];
+      if (/^[a-zа-яё]$/.test(s)) return s.toUpperCase();
+      return null;
+    };
+    const a = (toks[i] || '').replace(/[-.,;:№]/g, '');
+    const b = (toks[i + 1] || '').replace(/[-.,;:]/g, '');
+    let m;
+    if ((m = /^([a-zа-яё]{0,2})(\d{1,4})$/i.exec(a))) {
+      const L = m[1] ? letter(m[1]) : '';
+      if (L !== null) return { code: (L || '') + m[2], used: i + 1 };
+    }
+    const La = letter(a);
+    if (La && /^\d{1,4}$/.test(b)) return { code: La + b, used: i + 2 };
+    if (/^\d{1,4}$/.test(a)) return { code: a, used: i + 1 };
+    return null;
+  }
+
+  function findCode(t) {
+    const re = new RegExp(`(?:,\\s*)?${NB}(?:(?:в|във|на|от)\\s+)?(?:${CODE_WORDS})${NA}`, 'gi');
+    let m;
+    while ((m = re.exec(t))) {
+      const after = t.slice(m.index + m[0].length);
+      const c = codeTokens(after);
+      if (c) {
+        const toks = after.trim().split(/\s+/);
+        const usedText = toks.slice(0, c.used).join(' ');
+        const endIdx = m.index + m[0].length + after.indexOf(usedText) + usedText.length;
+        return { code: c.code, index: m.index, end: endIdx };
+      }
+    }
+    return null;
+  }
+
+  function cleanLocation(s) {
+    return cap(s.split(/,|\s+(?=(?:в|във)\s)/i)
+      .map(p => p.trim().replace(/^(в|във|на)\s+/i, '').trim())
+      .filter(Boolean).join(', '));
+  }
+
+  function parse(raw, ctx = {}) {
+    const today = ctx.today || startToday();
+    const res = { name: '', category: '', expiry: '', note: '', location: '', code: '' };
+    let t = ' ' + String(raw || '').trim().replace(/\s+/g, ' ') + ' ';
+    let m;
+
+    if ((m = new RegExp(`${NB}(?:бележка|забележка|коментар)${NA}[:,]?\\s*(.*)$`, 'i').exec(t))) {
+      res.note = cap(m[1].trim().replace(/[.,]$/, ''));
+      t = t.slice(0, m.index) + ' ';
+    }
+    if ((m = /^\s*(храна|лекарство|лекарства|друго)[,:]?\s+/i.exec(t))) {
+      const w = m[1].toLowerCase();
+      res.category = w.startsWith('лекар') ? 'лекарство' : w;
+      t = ' ' + t.slice(m[0].length);
+    }
+    const c = findCode(t);
+    if (c) { res.code = c.code; t = t.slice(0, c.index) + ' ' + t.slice(c.end); }
+
+    t = normOrdinals(t);
+    const d = findDate(t, today);
+    if (d) { res.expiry = d.date; t = t.slice(0, d.index) + ' ' + t.slice(d.index + d.length); }
+
+    t = t.replace(/\s+/g, ' ').replace(/\s+,/g, ',').trim().replace(/^[,.\s]+|[,.\s]+$/g, '');
+    const split = new RegExp(`,|\\s(?=(?:в|във)\\s)|\\s(?=(?:на|под|над|зад|до|при|отгоре на|отдолу на)\\s+(?:${LOC_NOUNS})${NA})`, 'i');
+    m = split.exec(t);
+    let name = m ? t.slice(0, m.index) : t;
+    let loc = m ? t.slice(m.index) : '';
+    name = name.replace(new RegExp(`\\s*${NB}(годн[аоие]?|годен|срок|изтича|важи)\\s*$`, 'i'), '').trim();
+    res.name = cap(name.replace(/^[,.\s]+|[,.\s]+$/g, ''));
+    res.location = cleanLocation(loc);
+
+    if (!res.category) {
+      if (MED.test(raw)) res.category = 'лекарство';
+      else if (res.expiry || FOOD.test(raw)) res.category = 'храна';
+      else res.category = 'друго';
+    }
+    return res;
+  }
+
+  function codeFrom(raw) {
+    const c = codeTokens(String(raw || '').replace(/^\s*(?:код|кутия|място|номер)\s+/i, ''));
+    return c ? c.code : String(raw || '').replace(/\s+/g, '').toUpperCase();
+  }
+
+  return { parse, codeFrom, iso, startToday };
+})();
+/*PARSER-END*/
+
+/* ═════════════ Данни ═════════════ */
+const LS = 'kade-mi-e:v1';
+const ICON = {
+  mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>'
+};
+const CATS = [['all', 'Всички'], ['храна', 'Храна'], ['лекарство', 'Лекарства'], ['друго', 'Друго'], ['soon', 'Изтичащи']];
+
+let S = load();
+const dirtyI = new Set(S.dirtyI), dirtyP = new Set(S.dirtyP);
+const ui = { q: '', cat: 'all', view: 'list', sort: 'name', place: null, chain: null };
+
+function blank() {
+  return { items: {}, places: {}, dirtyI: [], dirtyP: [], since: 0, lastSync: 0, cfg: { url: '', key: '', name: '' } };
+}
+function load() {
+  try { const s = JSON.parse(localStorage.getItem(LS)); if (s && s.items) return Object.assign(blank(), s); } catch (e) {}
+  return blank();
+}
+function persist() {
+  S.dirtyI = [...dirtyI]; S.dirtyP = [...dirtyP];
+  try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) { toast('Неуспешно записване на телефона'); }
+}
+const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now().toString(36) + Math.random().toString(36).slice(2));
+const nowIso = () => new Date().toISOString();
+const me = () => S.cfg.name || 'аз';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const $ = s => document.querySelector(s);
+const items = () => Object.values(S.items).filter(i => !i.deleted);
+const places = () => Object.values(S.places).filter(p => !p.deleted);
+const placeOf = code => code && S.places[code] && !S.places[code].deleted ? S.places[code] : null;
+
+function daysLeft(d) {
+  const [y, m, dd] = d.split('-').map(Number);
+  return Math.round((new Date(y, m - 1, dd) - BG.startToday()) / 864e5);
+}
+const fmtDate = d => d ? d.split('-').reverse().join('.') : '';
+function expBadge(d) {
+  if (!d) return '';
+  const n = daysLeft(d);
+  if (n < 0) return `<span class="exp red">изтекъл преди ${-n} ${-n === 1 ? 'ден' : 'дни'}</span>`;
+  if (n === 0) return '<span class="exp red">изтича днес</span>';
+  if (n <= 7) return `<span class="exp amber">след ${n} ${n === 1 ? 'ден' : 'дни'}</span>`;
+  if (n <= 30) return `<span class="exp teal">до ${fmtDate(d).slice(0, 5)}</span>`;
+  return `<span class="exp">до ${fmtDate(d)}</span>`;
+}
+
+/* ═════════════ Изглед ═════════════ */
+function stem(w) { return w.length > 4 ? w.replace(/(ята|ата|ът|ят|та|то|те|ти|а|я|и|о|е)$/, '') : w; }
+function norm(s) { return String(s || '').toLowerCase().replace(/[.,;:!?„“"]/g, ' '); }
+function matches(i, q) {
+  const hay = norm([i.name, i.note, i.location, i.code, placeOf(i.code)?.description, i.category, i.addedBy].join(' '));
+  return norm(q).split(/\s+/).filter(Boolean).every(w => hay.includes(stem(w)));
+}
+function cleanQuery(q) {
+  return q.replace(/^\s*(къде\s+(ми\s+|ни\s+)?(е|са|беше|бяха)|намери|търси|покажи)\s+/i, '').trim();
+}
+
+function visible() {
+  let arr = items();
+  if (ui.place) arr = arr.filter(i => i.code === ui.place);
+  if (ui.cat === 'soon') arr = arr.filter(i => i.expiry && daysLeft(i.expiry) <= 7);
+  else if (ui.cat !== 'all') arr = arr.filter(i => i.category === ui.cat);
+  const q = cleanQuery(ui.q);
+  if (q) arr = arr.filter(i => matches(i, q));
+  const byName = (a, b) => a.name.localeCompare(b.name, 'bg');
+  const sort = ui.cat === 'soon' ? 'expiry' : ui.sort;
+  if (sort === 'name') arr.sort(byName);
+  else if (sort === 'new') arr.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  else arr.sort((a, b) => (a.expiry ? 0 : 1) - (b.expiry ? 0 : 1) || (a.expiry || '').localeCompare(b.expiry || '') || byName(a, b));
+  return arr;
+}
+
+function card(i) {
+  const p = placeOf(i.code);
+  const where = [i.code ? `<span class="code">${esc(i.code)}</span>` : '', esc([p?.description, i.location].filter(Boolean).join(' · '))]
+    .filter(Boolean).join(' ');
+  return `<button class="card" data-id="${esc(i.id)}">
+    <div class="ctop"><span class="cdot c-${esc(i.category)}"></span><span class="cname">${esc(i.name)}</span>${expBadge(i.expiry)}</div>
+    ${where ? `<div class="where">${where}</div>` : '<div class="where">няма място</div>'}
+    ${i.note ? `<div class="cnote">${esc(i.note)}</div>` : ''}
+  </button>`;
+}
+
+function render() {
+  // чипове
+  $('#chips').innerHTML = (ui.place ? `<button class="chip place" data-clearplace>Място ${esc(ui.place)} ✕</button>` : '') +
+    CATS.map(([k, v]) => `<button class="chip ${ui.cat === k ? 'on' : ''}" data-cat="${k}">${v}</button>`).join('');
+  // предупреждение
+  const soon = items().filter(i => i.expiry && daysLeft(i.expiry) <= 7);
+  const expired = soon.filter(i => daysLeft(i.expiry) < 0).length;
+  const al = $('#alert');
+  al.classList.toggle('hidden', !soon.length || ui.cat === 'soon');
+  al.innerHTML = `<b>●</b><span>${expired ? `${expired} с изтекъл срок` : ''}${expired && soon.length - expired ? ', ' : ''}${soon.length - expired ? `${soon.length - expired} ${soon.length - expired === 1 ? 'изтича' : 'изтичат'} до седмица` : ''}. Виж ги →</span>`;
+  // изглед
+  document.querySelectorAll('#viewSeg button').forEach(b => b.classList.toggle('on', b.dataset.view === ui.view));
+  $('#sort').classList.toggle('hidden', ui.view !== 'list');
+  $('#sort').value = ui.sort;
+  const out = $('#out');
+  if (ui.view === 'places') { out.innerHTML = renderPlaces(); return; }
+  const arr = visible();
+  if (!items().length) {
+    out.innerHTML = `<div class="empty"><big>Още е празно</big>Натисни „Кажи“ и кажи например:<br><i>„Аспирин, годен до март 2027, в банята, в шкафчето“</i><br>или <i>„зимни якета в кутия 12“</i></div>`;
+  } else if (!arr.length) {
+    out.innerHTML = `<div class="empty"><big>Нищо не намерих</big>Опитай с друга дума или махни филтъра.</div>`;
+  } else {
+    out.innerHTML = arr.map(card).join('');
+  }
+}
+
+function renderPlaces() {
+  const all = items();
+  const ps = places().sort((a, b) => a.code.localeCompare(b.code, 'bg', { numeric: true }));
+  const locs = {};
+  all.filter(i => !i.code && i.location).forEach(i => { locs[i.location] = (locs[i.location] || 0) + 1; });
+  const noPlace = all.filter(i => !i.code && !i.location).length;
+  let h = `<div class="actions" style="margin-top:0"><button class="btn small" data-newplace>+ Ново място с код</button></div>`;
+  h += `<h2 class="sec">Места с код</h2>`;
+  h += ps.length ? `<div class="pgrid">${ps.map(p => {
+    const n = all.filter(i => i.code === p.code).length;
+    return `<button class="pcard" data-place="${esc(p.code)}"><span class="code">${esc(p.code)}</span>
+      <p>${esc(p.description || 'без описание')}</p><small>${n} ${n === 1 ? 'предмет' : 'предмета'}</small></button>`;
+  }).join('')}</div>` : `<p style="color:var(--muted);font-size:14px">Още няма. Код е удобен за кутии, кашони и чекмеджета — по-късно ще стане QR етикет.</p>`;
+  const lk = Object.keys(locs).sort((a, b) => a.localeCompare(b, 'bg'));
+  if (lk.length) {
+    h += `<h2 class="sec">Описани места</h2>` + lk.map(l => `<button class="lrow" data-loc="${esc(l)}"><span>${esc(l)}</span><small>${locs[l]}</small></button>`).join('');
+  }
+  if (noPlace) h += `<h2 class="sec">Без място</h2><button class="lrow" data-noplace><span>Предмети без място</span><small>${noPlace}</small></button>`;
+  return h;
+}
+
+/* ═════════════ Листове ═════════════ */
+function openSheet(html, onClose) {
+  $('#layer').innerHTML = `<div class="backdrop" data-close></div><div class="sheet" role="dialog"><div class="grab"></div><button class="x" data-close aria-label="Затвори">✕</button>${html}</div>`;
+  $('#layer')._onClose = onClose;
+}
+function closeSheet() { $('#layer').innerHTML = ''; }
+
+function nextCode() {
+  const nums = Object.keys(S.places).filter(c => /^\d+$/.test(c)).map(Number);
+  return String(nums.length ? Math.max(...nums) + 1 : 1);
+}
+
+let editing = null; // {id, cat}
+function openItem(id, pre = {}, heard = '') {
+  const it = id ? S.items[id] : null;
+  const v = Object.assign({ name: '', category: 'храна', expiry: '', note: '', location: '', code: '' }, it || {}, pre);
+  if (!it && !pre.category) v.category = 'друго';
+  editing = { id, cat: v.category };
+  const codes = places().map(p => `<option value="${esc(p.code)}">${esc(p.description)}</option>`).join('');
+  const locs = [...new Set(items().map(i => i.location).filter(Boolean))].map(l => `<option value="${esc(l)}">`).join('');
+  openSheet(`
+    <h3>${it ? 'Промени' : 'Нов предмет'}</h3>
+    ${heard ? `<div class="heard">Чух: „${esc(heard)}“ — провери и запиши.</div>` : ''}
+    <label class="f" for="f-name">Име</label>
+    <div class="inrow"><input class="inp" id="f-name" value="${esc(v.name)}" placeholder="напр. Кисело мляко" autocomplete="off">
+      <button class="mic" data-mic="name" aria-label="Кажи името">${ICON.mic}</button></div>
+    <label class="f">Категория</label>
+    <div class="cats" id="f-cats">${['храна', 'лекарство', 'друго'].map(c =>
+      `<button data-fcat="${c}" class="${v.category === c ? 'on' : ''}">${c === 'лекарство' ? 'Лекарство' : c[0].toUpperCase() + c.slice(1)}</button>`).join('')}</div>
+    <label class="f" for="f-exp">Годно до <span id="f-exp-opt">${v.category === 'друго' ? '(по желание)' : ''}</span></label>
+    <input class="inp" type="date" id="f-exp" value="${esc(v.expiry)}">
+    <div class="quick">${[['+3 дни', 3], ['+1 седм.', 7], ['+1 мес.', 'm1'], ['+3 мес.', 'm3'], ['+6 мес.', 'm6'], ['+1 год.', 'y1'], ['Без срок', 0]]
+      .map(([l, k]) => `<button data-quick="${k}">${l}</button>`).join('')}</div>
+    <label class="f" for="f-code">Място</label>
+    <div class="inrow">
+      <input class="inp mono" id="f-code" list="dl-codes" value="${esc(v.code)}" placeholder="код" autocomplete="off" inputmode="text">
+      <button class="mic" data-mic="code" aria-label="Кажи кода">${ICON.mic}</button>
+      <button class="mini" data-nextcode>Нов код</button>
+    </div>
+    <datalist id="dl-codes">${codes}</datalist>
+    <div class="hint" id="f-code-hint"></div>
+    <div class="newplace hidden" id="f-newplace"><p>Ново място — опиши го веднъж:</p>
+      <div class="inrow"><input class="inp" id="f-newdesc" placeholder="напр. Мазето, синият кашон" autocomplete="off">
+      <button class="mic" data-mic="newdesc" aria-label="Кажи описанието">${ICON.mic}</button></div></div>
+    <p class="or">и/или описание</p>
+    <div class="inrow"><input class="inp" id="f-loc" list="dl-locs" value="${esc(v.location)}" placeholder="напр. Банята, шкафчето над мивката" autocomplete="off">
+      <button class="mic" data-mic="loc" aria-label="Кажи мястото">${ICON.mic}</button></div>
+    <datalist id="dl-locs">${locs}</datalist>
+    <label class="f" for="f-note">Бележка</label>
+    <div class="inrow"><textarea class="inp" id="f-note" placeholder="по желание">${esc(v.note)}</textarea>
+      <button class="mic" data-mic="note" aria-label="Кажи бележка">${ICON.mic}</button></div>
+    <div class="actions">
+      ${it ? `<button class="btn danger" data-delitem>Изтрий</button>` : ''}
+      ${!it && heard ? `<button class="btn" data-savenext>Запиши + следващо</button>` : ''}
+      <button class="btn primary" data-saveitem>Запиши</button>
+    </div>`);
+  codeHint();
+}
+
+function codeHint() {
+  const el = $('#f-code'); if (!el) return;
+  const c = el.value.replace(/\s+/g, '').toUpperCase();
+  const p = placeOf(c);
+  $('#f-code-hint').textContent = p ? '📍 ' + (p.description || 'място без описание') : '';
+  $('#f-newplace').classList.toggle('hidden', !c || !!p);
+}
+
+function quickExp(k) {
+  const d = BG.startToday();
+  if (k === '0') { $('#f-exp').value = ''; return; }
+  if (/^\d+$/.test(k)) d.setDate(d.getDate() + +k);
+  else if (k[0] === 'm') d.setMonth(d.getMonth() + +k.slice(1));
+  else d.setFullYear(d.getFullYear() + +k.slice(1));
+  $('#f-exp').value = BG.iso(d);
+}
+
+function saveItem() {
+  const name = $('#f-name').value.trim();
+  if (!name) { toast('Напиши или кажи името'); $('#f-name').focus(); return false; }
+  const code = $('#f-code').value.replace(/\s+/g, '').toUpperCase();
+  const t = nowIso();
+  if (code && !placeOf(code)) {
+    S.places[code] = { code, description: $('#f-newdesc').value.trim(), addedBy: me(), updatedAt: t, deleted: false };
+    dirtyP.add(code);
+  }
+  const old = editing.id ? S.items[editing.id] : null;
+  const it = Object.assign({}, old || { id: uuid(), createdAt: t, addedBy: me() }, {
+    name: name[0].toUpperCase() + name.slice(1),
+    category: editing.cat,
+    expiry: $('#f-exp').value,
+    location: $('#f-loc').value.trim(),
+    note: $('#f-note').value.trim(),
+    code, updatedAt: t, deleted: false
+  });
+  S.items[it.id] = it;
+  dirtyI.add(it.id);
+  ui.chain = { code: it.code, location: it.location };
+  persist(); render(); scheduleSync();
+  return true;
+}
+
+function deleteItem(id) {
+  const old = S.items[id]; if (!old) return;
+  S.items[id] = Object.assign({}, old, { deleted: true, updatedAt: nowIso() });
+  dirtyI.add(id); persist(); render(); scheduleSync(); closeSheet();
+  toast(`„${old.name}“ е изтрит`, 'Върни', () => {
+    S.items[id] = Object.assign({}, old, { deleted: false, updatedAt: nowIso() });
+    dirtyI.add(id); persist(); render(); scheduleSync();
+  });
+}
+
+function openPlace(code) {
+  const p = code ? S.places[code] : null;
+  const inside = code ? items().filter(i => i.code === code) : [];
+  openSheet(`
+    <h3>${p ? 'Място ' + esc(p.code) : 'Ново място'}</h3>
+    <label class="f" for="p-code">Код</label>
+    <div class="inrow"><input class="inp mono" id="p-code" value="${esc(p ? p.code : nextCode())}" ${p ? 'readonly' : ''} autocomplete="off">
+    ${p ? '' : `<button class="mic" data-mic="pcode">${ICON.mic}</button>`}</div>
+    <label class="f" for="p-desc">Описание</label>
+    <div class="inrow"><input class="inp" id="p-desc" value="${esc(p ? p.description : '')}" placeholder="напр. Мазето, синият кашон на горния рафт" autocomplete="off">
+      <button class="mic" data-mic="pdesc">${ICON.mic}</button></div>
+    ${p ? `<label class="f">Вътре (${inside.length})</label><ul class="inlist">${inside.map(i => `<li>${esc(i.name)}</li>`).join('') || '<li>празно</li>'}</ul>` : ''}
+    <div class="actions">
+      ${p ? `<button class="btn danger" data-delplace="${esc(p.code)}">Изтрий</button><button class="btn" data-showplace="${esc(p.code)}">Покажи предметите</button>` : ''}
+      <button class="btn primary" data-saveplace>Запиши</button>
+    </div>`);
+}
+
+function savePlace() {
+  const code = $('#p-code').value.replace(/\s+/g, '').toUpperCase();
+  if (!code) { toast('Въведи код'); return; }
+  const isNew = !$('#p-code').readOnly;
+  if (isNew && placeOf(code)) { toast('Този код вече съществува'); return; }
+  S.places[code] = Object.assign({}, S.places[code] || { code, addedBy: me() },
+    { code, description: $('#p-desc').value.trim(), updatedAt: nowIso(), deleted: false });
+  dirtyP.add(code); persist(); render(); scheduleSync(); closeSheet(); toast('Мястото е записано');
+}
+
+function deletePlace(code) {
+  const n = items().filter(i => i.code === code).length;
+  if (n && !confirm(`В място ${code} има ${n} предмета. Те ще останат, но без описание на мястото. Изтриване?`)) return;
+  S.places[code] = Object.assign({}, S.places[code], { deleted: true, updatedAt: nowIso() });
+  dirtyP.add(code); persist(); render(); scheduleSync(); closeSheet();
+}
+
+/* ═════════════ Настройки и споделяне ═════════════ */
+function openSettings() {
+  const c = S.cfg;
+  openSheet(`<div class="set">
+    <h3>Настройки</h3>
+    <label class="f" for="s-name">Твоето име</label>
+    <input class="inp" id="s-name" value="${esc(c.name)}" placeholder="за да се вижда кой какво е добавил">
+    <hr>
+    <h3 style="font-size:18px">Google таблица</h3>
+    <p>Всичко се пази и на телефона, и в твоята таблица. Без интернет приложението работи нормално и синхронизира по-късно.</p>
+    <label class="f" for="s-url">Адрес на скрипта (URL)</label>
+    <input class="inp" id="s-url" value="${esc(c.url)}" placeholder="https://script.google.com/macros/s/…/exec">
+    <label class="f" for="s-key">Ключ</label>
+    <input class="inp" id="s-key" value="${esc(c.key)}" placeholder="от дневника след setup">
+    <div class="actions"><button class="btn primary" data-connect>Запази и провери</button></div>
+    <div class="status" id="s-status">${S.lastSync ? 'Последна синхронизация: ' + new Date(S.lastSync).toLocaleString('bg-BG') : ''}</div>
+    <div class="actions">
+      <button class="btn small" data-syncnow>Синхронизирай сега</button>
+      <button class="btn small" data-fullsync>Изтегли всичко отново</button>
+    </div>
+    <hr>
+    <h3 style="font-size:18px">Достъп за домашните</h3>
+    <p>Изпраща линк, който свързва друг телефон със същата таблица. За да спреш достъпа на всички, изпълни <b>newKey</b> в скрипта и дай новия ключ само на когото искаш.</p>
+    <div class="actions"><button class="btn small" data-invite>Покани човек от дома</button></div>
+    <hr>
+    <h3 style="font-size:18px">Резервно копие</h3>
+    <div class="actions">
+      <button class="btn small" data-export>Изнеси файл</button>
+      <button class="btn small" data-import>Внеси файл</button>
+    </div>
+    <input type="file" id="s-file" accept=".json,application/json" class="hidden">
+    <p style="margin-top:14px;color:var(--faint)">${items().length} предмета · ${places().length} места с код</p>
+  </div>`);
+}
+
+function setStatus(txt, cls) { const el = $('#s-status'); if (el) { el.textContent = txt; el.className = 'status ' + (cls || ''); } }
+
+async function connect() {
+  S.cfg.name = $('#s-name').value.trim();
+  S.cfg.url = $('#s-url').value.trim();
+  S.cfg.key = $('#s-key').value.trim();
+  persist();
+  if (!S.cfg.url || !S.cfg.key) { setStatus('Името е запазено. Без адрес и ключ данните остават само на телефона.'); renderPill(); return; }
+  setStatus('Проверявам…');
+  try {
+    const r = await call({ action: 'ping' });
+    setStatus(`Свързано ✓ В таблицата има ${r.items} предмета и ${r.places} места.`, 'good');
+    sync(true);
+  } catch (e) { setStatus('Неуспешно: ' + e.message, 'bad'); }
+}
+
+function inviteLink() {
+  const data = btoa(JSON.stringify({ u: S.cfg.url, k: S.cfg.key }));
+  return location.origin + location.pathname + '#join=' + encodeURIComponent(data);
+}
+async function invite() {
+  if (!S.cfg.url || !S.cfg.key) { toast('Първо свържи таблицата'); return; }
+  const url = inviteLink();
+  const text = 'Отвори този линк на телефона си, за да виждаш и добавяш нещата вкъщи в „Къде ми е?“';
+  try {
+    if (navigator.share) { await navigator.share({ title: 'Къде ми е?', text, url }); return; }
+  } catch (e) { if (e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(url); toast('Линкът е копиран — изпрати го'); }
+  catch (e) { prompt('Копирай този линк:', url); }
+}
+
+function checkJoin() {
+  const m = /#join=([^&]+)/.exec(location.hash);
+  if (!m) return;
+  history.replaceState(null, '', location.pathname);
+  let d; try { d = JSON.parse(atob(decodeURIComponent(m[1]))); } catch (e) { toast('Линкът е повреден'); return; }
+  openSheet(`<h3>Свързване</h3>
+    <p style="color:var(--muted)">Този телефон ще вижда и добавя в общата база на дома.</p>
+    <label class="f" for="j-name">Как се казваш?</label>
+    <input class="inp" id="j-name" value="${esc(S.cfg.name)}" placeholder="име">
+    <div class="actions"><button class="btn" data-close>Откажи</button><button class="btn primary" id="j-ok">Свържи</button></div>`);
+  $('#j-ok').onclick = () => {
+    S.cfg = { url: d.u, key: d.k, name: $('#j-name').value.trim() };
+    S.since = 0; persist(); closeSheet(); toast('Свързано — тегля данните…'); sync(true);
+  };
+}
+
+async function exportFile() {
+  const data = JSON.stringify({ app: 'kade-mi-e', exportedAt: nowIso(), items: Object.values(S.items), places: Object.values(S.places) }, null, 1);
+  const name = `kade-mi-e-${BG.iso(new Date())}.json`;
+  const file = new File([data], name, { type: 'application/json' });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); return; }
+  } catch (e) { if (e.name === 'AbortError') return; }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(file); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+function importFile(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      let n = 0;
+      (d.items || []).forEach(i => { if (i.id && mergeOne(S.items, i.id, i)) { dirtyI.add(i.id); n++; } });
+      (d.places || []).forEach(p => { if (p.code && mergeOne(S.places, p.code, p)) dirtyP.add(p.code); });
+      persist(); render(); scheduleSync(); toast(`Внесени: ${n} предмета`);
+    } catch (e) { toast('Файлът не може да се прочете'); }
+  };
+  r.readAsText(file);
+}
+
+/* ═════════════ Синхронизация ═════════════ */
+const t = s => Date.parse(s) || 0;
+function mergeOne(store, k, rec) {
+  const cur = store[k];
+  rec = Object.assign({}, rec, { deleted: rec.deleted === true || rec.deleted === '1' || rec.deleted === 1 });
+  delete rec.serverTs;
+  if (!cur || t(rec.updatedAt) >= t(cur.updatedAt)) { store[k] = rec; return true; }
+  return false;
+}
+
+async function call(body) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 30000);
+  try {
+    const res = await fetch(S.cfg.url, { method: 'POST', body: JSON.stringify(Object.assign({ key: S.cfg.key }, body)), signal: ctl.signal });
+    if (!res.ok) throw new Error('сървърът отговори ' + res.status);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'неизвестна грешка');
+    return data;
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('няма отговор');
+    if (e instanceof SyntaxError) throw new Error('провери адреса — трябва да завършва на /exec');
+    if (e.message === 'Failed to fetch') throw new Error(navigator.onLine ? 'провери адреса и достъпа „Всеки“' : 'няма интернет');
+    throw e;
+  } finally { clearTimeout(timer); }
+}
+
+let syncing = false, again = false, syncTimer = null, syncState = '';
+function scheduleSync(ms = 1500) { clearTimeout(syncTimer); renderPill(); syncTimer = setTimeout(() => sync(), ms); }
+
+async function sync(full) {
+  if (!S.cfg.url || !S.cfg.key) { renderPill(); return; }
+  if (syncing) { again = true; return; }
+  syncing = true; syncState = 'syncing'; renderPill();
+  const sendI = [...dirtyI].map(id => S.items[id]).filter(Boolean);
+  const sendP = [...dirtyP].map(c => S.places[c]).filter(Boolean);
+  try {
+    const d = await call({ action: 'sync', since: full ? 0 : S.since, items: sendI, places: sendP });
+    sendI.forEach(i => { if (S.items[i.id] && S.items[i.id].updatedAt === i.updatedAt) dirtyI.delete(i.id); });
+    sendP.forEach(p => { if (S.places[p.code] && S.places[p.code].updatedAt === p.updatedAt) dirtyP.delete(p.code); });
+    (d.items || []).forEach(i => { if (mergeOne(S.items, i.id, i)) dirtyI.delete(i.id); });
+    (d.places || []).forEach(p => { if (mergeOne(S.places, p.code, p)) dirtyP.delete(p.code); });
+    S.since = d.serverTs; S.lastSync = Date.now(); syncState = '';
+    persist(); render();
+  } catch (e) {
+    syncState = navigator.onLine ? 'error' : 'offline';
+    syncState === 'error' && setStatus('Грешка при синхронизация: ' + e.message, 'bad');
+  }
+  syncing = false; renderPill();
+  if (again) { again = false; sync(); }
+}
+
+function renderPill() {
+  const p = $('#pill'), txt = $('#pilltxt');
+  let cls = '', label = 'На телефона';
+  if (S.cfg.url && S.cfg.key) {
+    if (syncState === 'syncing') { cls = 'syncing'; label = 'Синхронизира…'; }
+    else if (syncState === 'offline') { cls = 'offline'; label = 'Офлайн'; }
+    else if (syncState === 'error') { cls = 'error'; label = 'Грешка'; }
+    else if (dirtyI.size || dirtyP.size) { cls = 'pending'; label = 'Чака'; }
+    else { cls = 'ok'; label = 'В таблицата'; }
+  }
+  p.className = 'pill ' + cls; txt.textContent = label;
+}
+
+/* ═════════════ Глас ═════════════ */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null;
+function listen(title, example, onText) {
+  if (!SR) { toast('Диктовката работи в Chrome. Отвори приложението с Chrome.'); return; }
+  const ov = document.createElement('div');
+  ov.className = 'listen';
+  ov.innerHTML = `<div class="orb">${ICON.mic}</div><div class="ltitle">${esc(title)}</div>
+    <div class="ltext" id="l-text">…</div>${example ? `<div class="lex">${esc(example)}</div>` : ''}
+    <div class="lbtns"><button class="btn" id="l-cancel">Откажи</button><button class="btn primary" id="l-done">Готово</button></div>`;
+  document.body.appendChild(ov);
+  let finalText = '', cancelled = false;
+  rec = new SR();
+  rec.lang = 'bg-BG'; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+  rec.onresult = e => {
+    let fin = '', interim = '';
+    for (let k = 0; k < e.results.length; k++) {
+      if (e.results[k].isFinal) fin += e.results[k][0].transcript; else interim += e.results[k][0].transcript;
+    }
+    finalText = fin || finalText;
+    ov.querySelector('#l-text').textContent = (fin + ' ' + interim).trim() || '…';
+  };
+  rec.onerror = e => {
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') toast('Разреши достъп до микрофона');
+    else if (e.error === 'no-speech') toast('Не чух нищо — опитай пак');
+    else if (e.error === 'network') toast('Диктовката иска интернет');
+    else if (e.error !== 'aborted') toast('Грешка при диктовка: ' + e.error);
+  };
+  rec.onend = () => {
+    const shown = ov.querySelector('#l-text').textContent;
+    ov.remove(); rec = null;
+    const text = (finalText || (shown !== '…' ? shown : '')).trim();
+    if (!cancelled && text) onText(text);
+  };
+  ov.querySelector('#l-cancel').onclick = () => { cancelled = true; rec && rec.abort(); };
+  ov.querySelector('#l-done').onclick = () => { rec && rec.stop(); };
+  try { rec.start(); } catch (e) { ov.remove(); toast('Микрофонът е зает'); }
+}
+
+function sayItem(chain) {
+  listen('Кажи какво и къде', 'напр. „Аспирин, годен до март 2027, в банята“ или „зимни якета в кутия 12“', text => {
+    const r = BG.parse(text);
+    if (chain && ui.chain && !r.code && !r.location) { r.code = ui.chain.code; r.location = ui.chain.location; }
+    openItem(null, r, text);
+  });
+}
+
+function fieldMic(kind) {
+  const map = {
+    name: ['#f-name', 'Кажи името', v => v[0].toUpperCase() + v.slice(1)],
+    loc: ['#f-loc', 'Кажи къде е', v => v[0].toUpperCase() + v.slice(1)],
+    newdesc: ['#f-newdesc', 'Опиши мястото', v => v[0].toUpperCase() + v.slice(1)],
+    pdesc: ['#p-desc', 'Опиши мястото', v => v[0].toUpperCase() + v.slice(1)],
+    note: ['#f-note', 'Кажи бележката', (v, old) => (old ? old + ' ' : '') + v],
+    code: ['#f-code', 'Кажи кода', v => BG.codeFrom(v)],
+    pcode: ['#p-code', 'Кажи кода', v => BG.codeFrom(v)],
+    search: ['#q', 'Какво търсиш?', v => v]
+  };
+  const [sel, title, f] = map[kind];
+  listen(title, kind === 'search' ? 'напр. „къде ми е бормашината“' : '', text => {
+    const el = $(sel); if (!el) return;
+    el.value = f(text, el.value);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+}
+
+/* ═════════════ Съобщения ═════════════ */
+let toastTimer;
+function toast(msg, action, fn) {
+  document.querySelectorAll('.toast').forEach(x => x.remove());
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<span>${esc(msg)}</span>${action ? `<button>${esc(action)}</button>` : ''}`;
+  if (action) el.querySelector('button').onclick = () => { el.remove(); fn(); };
+  document.body.appendChild(el);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.remove(), action ? 6000 : 3000);
+}
+
+/* ═════════════ Събития ═════════════ */
+document.addEventListener('click', e => {
+  const b = e.target.closest('button, [data-close]');
+  if (!b) return;
+  const d = b.dataset;
+  if ('close' in d) return closeSheet();
+  if (d.cat) { ui.cat = d.cat; ui.view = 'list'; return render(); }
+  if ('clearplace' in d) { ui.place = null; return render(); }
+  if (d.view) { ui.view = d.view; return render(); }
+  if (d.id && b.classList.contains('card')) return openItem(d.id);
+  if (d.mic) return d.mic === 'search' ? fieldMic('search') : fieldMic(d.mic);
+  if (d.fcat) {
+    editing.cat = d.fcat;
+    document.querySelectorAll('[data-fcat]').forEach(x => x.classList.toggle('on', x === b));
+    $('#f-exp-opt').textContent = d.fcat === 'друго' ? '(по желание)' : '';
+    return;
+  }
+  if (d.quick !== undefined) return quickExp(d.quick);
+  if ('nextcode' in d) { $('#f-code').value = nextCode(); return codeHint(); }
+  if ('saveitem' in d) { if (saveItem()) { closeSheet(); toast('Записано'); } return; }
+  if ('savenext' in d) { if (saveItem()) { closeSheet(); toast('Записано — кажи следващото'); setTimeout(() => sayItem(true), 350); } return; }
+  if ('delitem' in d) return deleteItem(editing.id);
+  if ('newplace' in d) return openPlace(null);
+  if (d.place) return openPlace(d.place);
+  if ('saveplace' in d) return savePlace();
+  if (d.delplace) return deletePlace(d.delplace);
+  if (d.showplace) { ui.place = d.showplace; ui.view = 'list'; ui.cat = 'all'; closeSheet(); return render(); }
+  if (d.loc) { ui.q = d.loc; $('#q').value = d.loc; ui.view = 'list'; return render(); }
+  if ('noplace' in d) { ui.view = 'list'; render(); $('#out').innerHTML = items().filter(i => !i.code && !i.location).map(card).join(''); return; }
+  if ('connect' in d) return connect();
+  if ('syncnow' in d) return sync();
+  if ('fullsync' in d) return sync(true);
+  if ('invite' in d) return invite();
+  if ('export' in d) return exportFile();
+  if ('import' in d) return $('#s-file').click();
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'q') { ui.q = e.target.value; render(); }
+  if (e.target.id === 'f-code') codeHint();
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 's-file' && e.target.files[0]) importFile(e.target.files[0]);
+  if (e.target.id === 'sort') { ui.sort = e.target.value; render(); }
+});
+$('#btnSay').onclick = () => sayItem(false);
+$('#btnAdd').onclick = () => openItem(null);
+$('#btnSettings').onclick = openSettings;
+$('#pill').onclick = () => (S.cfg.url && S.cfg.key ? sync() : openSettings());
+$('#alert').onclick = () => { ui.cat = 'soon'; ui.view = 'list'; render(); };
+window.addEventListener('online', () => sync());
+window.addEventListener('offline', () => { syncState = 'offline'; renderPill(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { render(); sync(); } });
+setInterval(() => { if (!document.hidden) sync(); }, 120000);
+
+/* ═════════════ Старт ═════════════ */
+$('#btnSettings').innerHTML = ICON.gear;
+$('#icoSearch').innerHTML = ICON.search;
+$('#icoSay').innerHTML = ICON.mic;
+document.querySelector('[data-mic="search"]').innerHTML = ICON.mic;
+render(); renderPill(); checkJoin(); sync();
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
